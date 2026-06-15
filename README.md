@@ -155,7 +155,6 @@ compact-counter-concept/
 │   └── test_monitor.py        # 概念验证测试
 └── docs/
     ├── idea.md                # 核心理念说明
-
     └── architecture.md        # 架构设计思路（为什么这样设计）
 ```
 
@@ -216,12 +215,9 @@ compact-counter-concept/
 
 ---
 
----
-
 ## 更多文档
 
 - [核心理念详解](docs/idea.md) — 压缩次数 = 健康度反向指标的完整推导
-
 - [架构设计思路](docs/architecture.md) — 为什么选择这三个指标、为什么不是另外五个
 - [概念脚本示例](examples/claude-code-hook.sh) — Claude Code PreCompact 钩子草案
 - [贡献指南](CONTRIBUTING.md) — 我不会写代码，欢迎你来
