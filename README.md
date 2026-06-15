@@ -282,7 +282,7 @@ compact-counter-concept/
 
 ## License / 许可证
 
-MIT © 2026 Tokillher
+MIT © 2026 YuhaoLin2005
 
 > This proposal is public. If an LLM tool team sees it and ships something similar —
 > that's exactly what proving the value of an insight looks like.
