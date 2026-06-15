@@ -9,6 +9,34 @@
 
 ---
 
+## Production Implementation / 生产实现
+
+**[`compact-counter.py`](compact-counter.py)** — Claude Code hook-based, validated across multiple compaction cycles. Drop it into `~/.claude/scripts/` and configure 3 hooks. Done.
+
+```bash
+# Installation (one-time)
+cp compact-counter.py ~/.claude/scripts/
+# Then add PreCompact, PostCompact, SessionStart hooks to ~/.claude/settings.json
+# See deepseek-claude-code-starter for full config
+```
+
+| Hook | What it does |
+|------|-------------|
+| **PreCompact** | Increments counter, injects count into compaction summary so it survives |
+| **PostCompact** | Updates completion timestamp, syncs statusline for real-time display |
+| **SessionStart** | `startup` → new session, `compact` → resume with reminder, `clear` → reset |
+
+**Key implementation details:**
+- Uses `hook_event_name` from JSON payload for reliable event detection
+- Regex fallback for PostCompact's 14K+ character `compact_summary` payloads
+- Atomic JSON state persistence (`~/.claude/compact-state.json`)
+- Statusline sync for real-time status bar display
+- Windows GBK emoji compatibility
+
+Already integrated into **[deepseek-claude-code-starter](https://github.com/YuhaoLin2005/deepseek-claude-code-starter)** — one command to install everything.
+
+---
+
 ## Try It Yourself / 你自己试一下
 
 ```bash
