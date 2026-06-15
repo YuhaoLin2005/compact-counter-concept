@@ -1,213 +1,252 @@
-# compact-counter-concept
+# compact-counter-concept / 压缩次数
 
+> **Compaction Count — the overlooked inverse health metric for LLM context windows.**
+>
 > **压缩次数 —— 一个被忽略的上下文健康度反向指标。**
 >
+> From black box to white box. One number in the status bar is all it takes.
 > 从黑盒到白盒，只需要在状态栏多显示一个数字。
 
 ---
 
-## 这是什么
+## What This Is / 这是什么
 
+While building a Claude Code + DeepSeek configuration pack, I noticed a detail:
 在做 Claude Code + DeepSeek 配置包的过程中，我发现了一个细节：
 
+The status bar shows context usage (how much room is left), and triggers compaction at a threshold. But **how much information has already been lost** — nothing tells you that.
 状态栏显示上下文占比（还剩多少空间），到阈值就触发压缩。但**已经丢了多少信息**——没有任何工具告诉你。
 
+I looked around. Existing context visualization tools do progress bars, predictions, historical lookups, composite health scores — **none of them surface "compaction count" as a standalone, real-time health metric.**
 翻了一圈市面上已有的上下文可视化工具，它们做进度条、做预测、做回溯、做综合评分——**没有一个人把"压缩次数"单独拿出来，作为一个实时可见的健康指标。**
 
+This repo turns that observation into a full proposal: why this metric matters, how it relates to existing tools (complementary, not competitive), and a runnable proof-of-concept framework.
 这个仓库把这一观察写成了一份完整提案：为什么这个指标重要、它和现有工具的关系（互补不是替代）、以及一个可运行的概念验证框架。
 
+**It's an open initiative, aimed at the developers and users of LLM CLI tools.**
 **它是一份开放倡议，面向 LLM CLI 工具的开发者和用户社区。**
 
 ---
 
-## 一、这个想法是怎么来的
+## 一、How This Idea Came About / 这个想法是怎么来的
 
-### 一个具体的下午
+### A Concrete Afternoon / 一个具体的下午
 
+I was building myself a Claude Code + DeepSeek config pack — the existing setups were uncomfortable. Price mapping was off, visual capability was missing, security guards were absent.
 我在给自己做一套 Claude Code 接 DeepSeek 的配置包——因为现有的配置用着不舒服，价格映射不准，视觉能力缺失，安全护栏也没有。
 
+Eight hours, fully conversing with AI. I did requirements, testing, decisions; AI handled execution.
 全程和 AI 对话 8 小时。我负责提需求、测试、决策；AI 负责执行。
 
+Halfway through, a detail caught my attention:
 过程中我注意到一个细节：
 
+> The status line shows context percentage, and triggers compaction when it hits the limit. Context percentage answers "how much room is left." But **how much information has already been lost** — nobody tells you that.
 > 状态行会显示上下文占比，到一定比例就触发压缩。上下文占比是"还剩多少空间"。但**已经丢了多少信息**——没人告诉你。
 
+Each compaction means the model discards details from earlier in the conversation → my grip on the project weakens → and I **don't know** how much.
 每次压缩，模型在丢掉早期对话的细节 → 我对项目的掌控力在下降 → 但我**不知道**下降了多关键。
 
-### 然后我翻了一圈
+### Then I Looked Around / 然后我翻了一圈
 
+Tools exist for viewing context usage (HUD progress bar), predicting upcoming compactions (cccontext), looking up historical events (ctx-inspector), and composite scoring (noctrace).
 市面上有工具能看上下文用量（HUD 进度条）、能预测即将压缩（cccontext）、能回溯历史事件（ctx-inspector）、能综合打分（noctrace）。
 
+**But none of them answers the simplest question: how many times has it been compacted?**
 **但没有一个工具回答这个最简单的问题：已经被压缩了几次？**
 
-| 工具 | 告诉你"还剩多少" | 告诉你"即将压缩" | 告诉你"已被压缩几次" |
+| Tool | Shows "room left" | Shows "compaction coming" | Shows "compacted N times" |
 |------|:---:|:---:|:---:|
-| Claude HUD | ✅ 进度条 | ❌ | ❌ |
+| Claude HUD | ✅ progress bar | ❌ | ❌ |
 | cccontext | ❌ | ✅ | ❌ |
-| ctx-inspector | ❌ | ❌ | ⚠️ 可查历史，非实时 |
-| noctrace | ❌ | ❌ | ⚠️ 作为评分因子，非独立指标 |
+| ctx-inspector | ❌ | ❌ | ⚠️ queryable history, not real-time |
+| noctrace | ❌ | ❌ | ⚠️ as a scoring factor, not standalone |
 | ChatGPT / Cursor / Aider | ❌ | ❌ | ❌ |
 
+**This is the metric everyone missed.**
 **这就是那个被所有人忽略的指标。**
 
+It's the missing gauge on the dashboard — not replacing anyone, but filling the "cumulative damage log" gap.
 它是现有仪表盘上缺失的一块表——不是替代谁，是补上"累计损伤记录"这个空白。
 
+> This insight didn't come from AI. I arrived at it myself, while building the config pack.
 > 这个洞察不是 AI 告诉我的。是我在做配置包的过程中自己悟出来的。
 
 ---
 
-## 二、为什么是"压缩次数"？
+## 二、Why "Compaction Count"? / 为什么是"压缩次数"？
 
-### 它天然就是一个反向健康指标
+### A Natural Inverse Health Metric / 它天然就是一个反向健康指标
 
+Context window fills up → system auto-compacts → information loss → fills up again → more loss...
 上下文窗口满了 → 系统自动压缩 → 信息丢失 → 再来一轮 → 再丢：
 
 ```
-┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
-│ 原始对话  │ ──▶ │ 压缩 #1  │ ──▶ │ 压缩 #2  │ ──▶ │ 压缩 #4  │
-│ 100% 信息 │     │ ~80% 信息 │     │ ~60% 信息 │     │ ~25% 信息 │
-└──────────┘     └──────────┘     └──────────┘     └──────────┘
-     🟢               🟢               🟡               🔴
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│  Original    │ ──▶ │ Compact #1   │ ──▶ │ Compact #2   │ ──▶ │ Compact #4   │
+│  100% info   │     │  ~80% info   │     │  ~60% info   │     │  ~25% info   │
+│  原始对话    │     │  压缩 #1      │     │  压缩 #2      │     │  压缩 #4      │
+│  100% 信息   │     │  ~80% 信息   │     │  ~60% 信息   │     │  ~25% 信息   │
+└──────────────┘     └──────────────┘     └──────────────┘     └──────────────┘
+       🟢                    🟢                    🟡                    🔴
 ```
 
+**Four reasons compaction count beats context percentage for decision-making:**
 **四个理由让"压缩次数"比"上下文百分比"更有决策价值：**
 
-| 特性 | 压缩次数 | 上下文百分比 |
-|------|:---:|:---:|
-| 单向累积（只增不减） | ✅ | ❌ 上下波动 |
-| 直接反映信息丢失 | ✅ | ❌ 只反映空间用量 |
-| 客观可测（日志关键词匹配） | ✅ | ⚠️ 需要解析 token 计数 |
-| 可转化为行动建议 | ✅ "2次→注意，4次→重置" | ❌ "91%→然后呢？" |
+| Property | Compaction Count | Context Percentage |
+|----------|:---:|:---:|
+| Monotonic (only increases) / 单向累积 | ✅ | ❌ fluctuates / 上下波动 |
+| Directly reflects info loss / 直接反映信息丢失 | ✅ | ❌ only reflects space / 只反映空间 |
+| Objectively measurable (log keywords) / 客观可测 | ✅ | ⚠️ requires token parsing / 需解析 token |
+| Actionable / 可转化为行动 | ✅ "2→watch, 4→reset" | ❌ "91% → now what?" |
 
+> **You don't need users to understand compaction algorithms. Just give them a number + a color.**
 > **不需要让用户看懂压缩算法。只需要给 ta 一个数字 + 一种颜色。**
 
 ---
 
-## 三、概念设计：同一个终端，三种状态
+## 三、Concept Design: One Terminal, Three States / 概念设计：同一个终端，三种状态
 
 ```
 ┌─────────────────────────┐ ┌─────────────────────────┐ ┌─────────────────────────┐
-│  🟢 健康状态            │ │  🟡 轻度警告            │ │  🔴 严重警告            │
+│  🟢 Healthy / 健康      │ │  🟡 Warning / 轻度警告   │ │  🔴 Critical / 严重警告  │
 │  ───────────────────────│ │  ───────────────────────│ │  ───────────────────────│
 │  🤖 Opus 4.6            │ │  🤖 Opus 4.6            │ │  🤖 Opus 4.6            │
-│  🔄 压缩: 0 次          │ │  🔄 压缩: 2 次          │ │  🔄 压缩: 4 次          │
-│  📊 上下文: 23%         │ │  📊 上下文: 68%         │ │  📊 上下文: 91%         │
+│  🔄 Compacted: 0        │ │  🔄 Compacted: 2        │ │  🔄 Compacted: 4        │
+│  📊 Context: 23%        │ │  📊 Context: 68%        │ │  📊 Context: 91%        │
 │  💰 $0.05               │ │  💰 $0.18               │ │  💰 $0.31               │
 │  ───────────────────────│ │  ───────────────────────│ │  ───────────────────────│
-│  ✅ 完整记忆            │ │  ⚠️ 部分信息已丢失      │ │  💀 高度幻觉            │
-│  模型完全掌握           │ │  建议留意回答质量       │ │  强烈建议立即重置！     │
-│  所有上下文。           │ │  可继续但不推荐         │ │  执行 /reset 或 /rewind │
-│                         │ │  新增复杂任务。         │ │  到早期节点。           │
+│  ✅ Full memory         │ │  ⚠️ Partial info lost   │ │  💀 High hallucination   │
+│  Model fully grasps     │ │  Watch reply quality.   │ │  Reset strongly advised! │
+│  all context.           │ │  OK to continue, but    │ │  Run /reset or /rewind   │
+│                         │ │  avoid complex tasks.   │ │  to an earlier node.     │
 └─────────────────────────┘ └─────────────────────────┘ └─────────────────────────┘
 ```
 
-### 设计逻辑
+### Design Rationale / 设计逻辑
 
-| 设计决策 | 理由 |
-|----------|------|
-| **只暴露 3 个指标** | 不让用户读仪表盘，只给最关键的信号 |
-| **颜色 + 文字双通道** | 扫一眼（颜色）和细读（文字）两种消费模式 |
-| **操作建议写在状态栏底部** | 不让用户做二次判断——直接告诉 ta 该干什么 |
-| **不追求绝对精度** | "~60% 上下文保持"比"精确 63.2%"有用；产品指标要方向感，不要仪表精度 |
-| **放在终端状态栏** | 不额外占用屏幕，融入已有心智模型 |
-| **次数而非百分比** | 自然数比百分数更"可感知"——"被压缩了4次"比"上下文保持率25%"更具体 |
+| Decision | Rationale |
+|----------|-----------|
+| **Only 3 metrics exposed** / 只暴露3个指标 | Don't make users read a dashboard. Give them the critical signal. |
+| **Color + text, dual channel** / 颜色+文字双通道 | Glance mode (color) and read mode (text) — two consumption speeds. |
+| **Actionable advice at the bottom** / 操作建议在底部 | Don't make users do secondary judgment. Tell them what to do. |
+| **Direction over precision** / 方向感优于精度 | "~60% context retained" is more useful than "exactly 63.2%". |
+| **Lives in the status bar** / 放在终端状态栏 | Zero additional screen real estate. Fits existing mental models. |
+| **Count, not percentage** / 次数而非百分比 | "Compacted 4 times" is more tangible than "25% context retention". |
 
 ---
 
-## 四、竞争定位：不是替代，是互补
+## 四、Competitive Positioning: Complementary, Not Replacement / 竞争定位：不是替代，是互补
 
+Existing context visualization tools answer different questions. Compaction count doesn't compete — it fills the **"cumulative damage log"** gap:
 现有上下文可视化工具各自回答不同的问题。压缩次数不跟它们竞争，它补上的是**"已发生的损伤记录"**这个空白：
 
-| 工具 | 回答的问题 | 类比 |
-|------|-----------|------|
-| Claude HUD（进度条） | "还剩多少空间？" | 油量表 |
-| cccontext（预测） | "什么时候会压缩？" | 导航提醒 |
-| ctx-inspector（回溯） | "过去发生了什么？" | 行车记录仪 |
-| noctrace（评分） | "整体健康吗？" | 车况综合评分 |
-| **压缩次数（本提案）** | **"已经被压缩了几次？"** | **事故记录表** |
+| Tool | Answers | Analogy / 类比 |
+|------|---------|---------------|
+| Claude HUD (progress bar) | "How much room is left?" | Fuel gauge / 油量表 |
+| cccontext (prediction) | "When will compaction happen?" | Nav alert / 导航提醒 |
+| ctx-inspector (lookback) | "What happened in the past?" | Dashcam / 行车记录仪 |
+| noctrace (scoring) | "How healthy overall?" | Vehicle health score / 车况评分 |
+| **Compaction Count (this proposal)** | **"How many times compacted?"** | **Accident log / 事故记录表** |
 
+An ideal complete dashboard: HUD usage top-left, cccontext prediction center, compaction count top-right — **not competitors, different gauges on the same dashboard.**
 一个理想化的完整仪表盘：左上角 HUD 用量，中间 cccontext 预测，右上角压缩次数累计——**它们不是竞品，是同一块仪表盘的不同仪表。**
 
-详细对比见 [docs/competitive-analysis.md](docs/competitive-analysis.md)。
+Detailed comparison: [docs/competitive-analysis.md](docs/competitive-analysis.md)
+详细对比见 [docs/competitive-analysis.md](docs/competitive-analysis.md)
 
 ---
 
-## 五、验证路径
+## 五、Validation Path / 验证路径
 
+Code implementation is not step one. Validating that the need is real — that's step one.
 代码实现不是第一步。验证需求是否真实存在，才是。
 
-### Phase 1 — 概念验证（本仓库）
-- [x] ASCII 终端模拟图让概念可视化
-- [x] 完整的推导链：痛点 → 指标 → 竞品缺口 → 互补定位
-- [x] 可运行的监控脚本框架（证明技术可行，不是写来用的）
-- [ ] 收集真实用户的直觉反馈
+### Phase 1 — Concept Validation (this repo) / 概念验证（本仓库）
+- [x] ASCII terminal mockup makes the concept visible / ASCII 终端模拟图让概念可视化
+- [x] Full derivation chain: pain point → metric → competitive gap → complementary positioning
+- [x] Runnable monitor script framework (to prove feasibility, not for production)
+- [ ] Collect real user gut-reaction feedback / 收集真实用户的直觉反馈
 
-### Phase 2 — 社区验证
+### Phase 2 — Community Validation / 社区验证
 
+Pose a simple question in Claude Code / Aider / DeepSeek communities:
 在 Claude Code / Aider / DeepSeek 社区发起一个简单的问题：
 
+> "If the status bar showed 'compaction count,' would you use it to decide when to reset your session?"
 > "如果终端状态栏显示'压缩次数'，你会用它来决定何时重置会话吗？"
 
+Tally "would use it" vs. "don't care" — that's the first data point on whether the need is real.
 统计"会"vs"无所谓"的比例——这是判断需求真实性的第一个数据点。
 
-### Phase 3 — 迭代或转向
+### Phase 3 — Iterate or Pivot / 迭代或转向
 
-| 社区反馈 | 对应的动作 |
-|----------|-----------|
-| "确实有这个需求，我们已经在做了" | ✅ 验证通过。洞察正确，关闭提案 |
-| "有意思，但优先级不高" | 收集具体顾虑，迭代设计 |
-| "不考虑" | 问清楚原因——这也是一种发现 |
-| 社区高票支持但官方沉默 | 考虑独立实现或 PR 贡献 |
-| 无人关心 | **这本身就是一个结论**——记录为什么用户不觉得痛 |
-
----
-
-## 六、为什么这个指标值得存在？
-
-**对用户：** 一个明确的信号，什么时候该重置不用靠猜。每月在"AI 越来越笨"上浪费的时间，现在有一个看得见的原因。
-
-**对工具团队：** 零成本 UX 提升（日志里已有数据，只需计数并展示）。目前没有竞品做这件事——差异化竞争力。
-
-**对行业：** 就像 DevOps 需要可观测性一样，AI-native workflow 也需要健康检查。从"魔法黑盒"到"可管理的工具"。
+| Community Feedback | Action |
+|--------------------|--------|
+| "We have this need, already working on it" | ✅ Validated. Insight is correct. Close the proposal. |
+| "Interesting, but low priority" | Gather specific concerns, iterate on the design. |
+| "Not considering it" | Ask why — that's also a finding. |
+| Strong community support, official silence | Consider independent implementation or PR contribution. |
+| Nobody cares | **That itself is a conclusion** — document why users don't feel the pain. |
 
 ---
 
-## 七、一起推动这件事
+## 六、Why This Metric Deserves to Exist / 为什么这个指标值得存在？
 
+**For users / 对用户：** A clear signal. No more guessing when to reset. The monthly time wasted on "AI getting dumber" now has a visible cause.
+一个明确的信号，什么时候该重置不用靠猜。每月在"AI 越来越笨"上浪费的时间，现在有一个看得见的原因。
+
+**For tool teams / 对工具团队：** Zero-cost UX improvement (the data is already in logs — just count and display). No competitor is doing this yet — differentiation.
+零成本 UX 提升（日志里已有数据，只需计数并展示）。目前没有竞品做这件事——差异化竞争力。
+
+**For the industry / 对行业：** Just as DevOps needed observability, AI-native workflows need health checks. From "magic black box" to "manageable tool."
+就像 DevOps 需要可观测性一样，AI-native workflow 也需要健康检查。从"魔法黑盒"到"可管理的工具"。
+
+---
+
+## 七、Let's Make This Happen / 一起推动这件事
+
+For tool teams, this is a **trivially cheap optimization** — compaction events are already in logs, just count and display. But the UX change is fundamental: from black box to a crack of white.
 这个优化对工具团队来说**实现成本极低**——日志中已有压缩事件，只需计数并展示。但对用户体验的改变是根本性的：从黑盒到有一点白盒。
 
+If this resonates, here's what you can do:
 如果你认同这个方向，可以做的事：
 
-- **给官方提 Feature Request** — 把 ASCII 概念图贴给他们，比文字描述直观十倍
-- **给这个仓库提 PR** — 为更多 LLM 工具补充监控脚本（Aider、Cursor、ChatGPT Web 插件等）
-- **在你的社区讨论** — V2EX、Reddit、Discord 上发起"你会在意压缩次数吗"的讨论
-- **质疑这个指标** — 如果你觉得压缩次数不如其他方案，开 Issue 说清楚为什么。被说服也是一种贡献
+- **File a Feature Request** — paste the ASCII concept mockup. It's 10x more intuitive than a text description.
+- **PR to this repo** — add monitor scripts for more LLM tools (Aider, Cursor, ChatGPT Web plugin, etc.)
+- **Start a discussion in your community** — V2EX, Reddit, Discord, Hacker News. Ask: "Would compaction count change when you reset?"
+- **Challenge the metric** — if you think compaction count is the wrong signal, open an Issue and explain why. Being convinced otherwise is also a contribution.
 
+For implementation details, see [CONTRIBUTING.md](CONTRIBUTING.md).
 如果你想实现一个真正的 PR，见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ---
 
-## 仓库导航
+## Repository Map / 仓库导航
 
 ```
 compact-counter-concept/
-├── README.md                    # 👈 核心交付物 — 产品设计提案
-├── CONTRIBUTING.md              # 如果你有能力实现，欢迎
-├── monitor.py                   # 概念验证框架（完整版）
-├── compact_monitor.py           # 最简监控脚本（开箱即用）
+├── README.md                    # 👈 You're reading it — the core proposal
+├── CONTRIBUTING.md              # How to help
+├── monitor.py                   # Concept-verification framework (full version)
+├── compact_monitor.py           # Minimal monitor script (plug and play)
 ├── examples/
-│   └── claude-code-hook.sh      # Claude Code PreCompact 钩子草案
+│   └── claude-code-hook.sh      # Claude Code PreCompact hook draft
 ├── tests/
-│   └── test_monitor.py          # 压缩检测 & 状态转换测试
+│   └── test_monitor.py          # Compaction detection & state transition tests
 └── docs/
-    ├── idea.md                  # 核心理念：压缩次数 = 健康反向指标
-    ├── competitive-analysis.md  # 竞品对比：为什么不是重复造轮子
-    └── architecture.md          # 架构思路：设计决策记录
+    ├── idea.md                  # Core concept: compaction count = inverse health
+    ├── competitive-analysis.md  # Competitive landscape: why it's not redundant
+    └── architecture.md          # Design rationale: decision records
 ```
 
-## 许可证
+## License / 许可证
 
 MIT © 2026 Tokillher
 
+> This proposal is public. If an LLM tool team sees it and ships something similar —
+> that's exactly what proving the value of an insight looks like.
+>
 > 这个提案是公开的。如果某个 LLM 工具团队看到并实现了类似功能——
 > 那恰恰证明了这个产品洞察的价值。
