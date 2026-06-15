@@ -14,7 +14,7 @@
 |------|--------|-----------|
 | **问题抽象** | 痛点叙事 | 从模糊焦虑中提炼可操作指标 |
 | **概念设计** | 三态 ASCII 对比图 | 用视觉叙事让抽象概念可感知 |
-| **验证设计** | 邮件模板 + 开源倡议 | 低成本需求验证的落地路径 |
+| **验证设计** | 开源倡议 + 社区讨论 | 低成本需求验证的落地路径 |
 | **原型沟通** | Python 监控脚本框架 | 用"可运行的假想"对齐多方认知 |
 
 **它存在的唯一目的：作为我找产品/运营实习的作品集。**
@@ -128,41 +128,7 @@
 - 收集用户对这个指标的直觉反应
 - 统计"会用它" vs "无所谓"的比例
 
-### Phase 3 — 官方邮件触达
-
-向 LLM CLI 工具团队发送产品建议：
-
-```text
-主题: [Product Suggestion] Add "Compact Count" to TUI status bar
-
-Hi {team},
-
-I'm a heavy user of your tool. One pain point I've noticed:
-
-After a long coding session, the model starts hallucinating —
-but I can't tell when exactly the quality degraded. There's no
-indicator in the UI.
-
-Proposal: show a "Compact Count" in the status bar.
-- 0-1 compactions → 🟢 Healthy
-- 2-3 compactions → 🟡 Warning
-- 4+ compactions → 🔴 Critical (strongly recommend /reset)
-
-This is a passive metric (no perf cost) that helps users make
-better decisions about when to reset their session.
-
-I've put together a concept design here:
-https://github.com/Tokillher/compact-counter-concept
-
-Would love your thoughts — is this on your radar?
-
-Best,
-{name}
-```
-
-> **这个邮件模板本身就是一个产品动作：用最小成本验证"这个需求官方是否已经意识到 / 是否在规划中 / 是否愿意接收用户洞察"。**
-
-### Phase 4 — 迭代或转向
+### Phase 3 — 迭代或转向
 
 | 官方/社区反馈 | 后续动作 |
 |--------------|---------|
@@ -189,7 +155,7 @@ compact-counter-concept/
 │   └── test_monitor.py        # 概念验证测试
 └── docs/
     ├── idea.md                # 核心理念说明
-    ├── email-template.md      # 给官方的邮件模板
+
     └── architecture.md        # 架构设计思路（为什么这样设计）
 ```
 
@@ -244,7 +210,7 @@ compact-counter-concept/
 | **问题抽象** | 从"AI 变笨了"的模糊体感 → "压缩次数 = 健康反向指标" |
 | **指标定义** | 为什么是压缩次数而不是上下文百分比？给出推导链 |
 | **落地叙事** | ASCII 三态对比图让概念从抽象文字变成可感知的画面 |
-| **推动协作** | 邮件模板、开源倡议、社区讨论 — 产品经理的核心工作就是这样 |
+| **推动协作** | 开源倡议、社区讨论 — 产品经理的核心工作就是这样 |
 | **技术判断力** | 知道"概念验证框架"和"生产代码"的边界，不混淆两者 |
 | **自我定位** | 清楚这是一个作品集项目，不是创业也不是开源运动 |
 
@@ -255,7 +221,7 @@ compact-counter-concept/
 ## 更多文档
 
 - [核心理念详解](docs/idea.md) — 压缩次数 = 健康度反向指标的完整推导
-- [给官方的邮件模板](docs/email-template.md) — 可直接复制发送给 LLM 工具团队
+
 - [架构设计思路](docs/architecture.md) — 为什么选择这三个指标、为什么不是另外五个
 - [概念脚本示例](examples/claude-code-hook.sh) — Claude Code PreCompact 钩子草案
 - [贡献指南](CONTRIBUTING.md) — 我不会写代码，欢迎你来
@@ -275,7 +241,6 @@ compact-counter-concept/
 │   └── test_monitor.py          # 概念验证测试
 └── docs/
     ├── idea.md                  # 核心理念说明
-    ├── email-template.md        # 官方邮件模板
     └── architecture.md          # 架构设计思路
 ```
 
