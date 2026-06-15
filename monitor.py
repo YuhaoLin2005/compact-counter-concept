@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Compact Counter — 概念验证框架（不是生产代码）
+Compact Counter — 概念验证框架
 
 这是一个产品设计提案的配套原型，目的不是上线运行，而是：
 1. 证明"监控日志 → 检测压缩 → 分级告警"在技术上是可行的
@@ -9,6 +9,10 @@ Compact Counter — 概念验证框架（不是生产代码）
 
 如果你看到这段代码并想"这不够健壮"——你说得对。
 这是概念验证阶段故意保留的"不完整"，让后续讨论有具体的锚点。
+
+>>> 生产实现已就绪: compact-counter.py <<<
+生产版直接使用 Claude Code hooks（PreCompact/PostCompact/SessionStart），
+不依赖日志文件正则解析。见同仓库 compact-counter.py。
 
 Usage (for demo purposes):
     python monitor.py                          # 默认配置
@@ -318,7 +322,7 @@ class CompactMonitor:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Compact Counter — DeepSeek-TUI 压缩次数监控",
+        description="Compact Counter — 压缩次数监控（概念验证）",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
