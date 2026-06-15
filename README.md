@@ -205,7 +205,46 @@ Tally "would use it" vs. "don't care" — that's the first data point on whether
 
 ---
 
-## 七、Let's Make This Happen / 一起推动这件事
+## 七、FAQ
+
+**Q: Isn't this just a trivial log counter? Why does it need a whole repo?**
+**这不就是一个日志计数器吗，为什么需要一个仓库？**
+
+A: The implementation is trivial — three lines of code. What's not trivial is the product judgment of *which number to surface*. Existing tools surface context percentage, token count, cost — nobody chose compaction count. The repo exists to argue for that choice, not to show off the code.
+
+实现确实很简单——三行代码。不简单的是"在状态栏显示哪个数字"这个产品判断。现有工具都显示百分比、token 数、费用——没人选压缩次数。这个仓库在论证这个选择，不是炫代码。
+
+**Q: Won't official tools just build this themselves, making this repo irrelevant?**
+**官方工具自己加了这个功能，这个仓库不就白做了？**
+
+A: That's the best possible outcome. The repo's value is in first identifying and articulating why this metric matters. If Anthropic or DeepSeek ships it, the insight was correct — that's a win, not a loss.
+
+那是最好的结果。这个仓库的价值在于首先识别并论证了这个指标为什么重要。如果 Anthropic 或 DeepSeek 实现了它，说明洞察是对的——这是胜利，不是失败。
+
+**Q: How do you know 2 compactions = warning, 4 = critical? Where do the thresholds come from?**
+**你怎么知道 2 次 = 警告，4 次 = 严重？阈值从哪来的？**
+
+A: The current thresholds are an informed starting point based on observed usage patterns, not data-proven. Phase 2 of the validation path explicitly calls for gathering real user data. A good next step would be correlating compaction count with user-initiated `/reset` behavior. The numbers will shift with data — the important thing is establishing the framework for that data to be collected.
+
+当前阈值是基于使用观察的合理起点，不是数据验证过的。验证路径的 Phase 2 明确提出了收集真实用户数据的需求。一个好的下一步是分析压缩次数和用户主动 `/reset` 行为的相关性。数字会随数据调整——重要的是先建立收集数据的框架。
+
+**Q: Why not just show "context retention percentage" instead of compaction count?**
+**为什么不直接显示"上下文保持率"而非要用压缩次数？**
+
+A: Retention percentage is an estimate (you don't know exactly how much information each compaction discards). Compaction count is a fact. An estimate pretends to be precise; a count is honest about what it is. Users can build their own intuition around "4 compactions = bad" faster than around "retention = 31.7%."
+
+保持率是估算（你不知道每次压缩到底丢了什么）。压缩次数是一个事实。估算假装精确，计数诚实地就是计数。用户对"4次=危险"的直觉建立速度，比"保持率=31.7%"快得多。
+
+**Q: Isn't this too niche? How many people even notice context compaction?**
+**这个需求太小众了吧？有多少人在意上下文压缩？**
+
+A: Every heavy user of LLM CLI tools experiences the downstream effects — they just don't attribute it to compaction. "AI is getting dumber in long sessions" is a universal complaint. The metric connects that complaint to a specific, measurable cause. Niche today, but as AI-assisted development goes mainstream, every developer will have multi-hour AI sessions.
+
+每个重度 LLM CLI 用户都体验过它的下游影响——只是他们不知道是压缩导致的。"长会话中 AI 越来越笨"是普遍抱怨。这个指标把抱怨连接到了一个具体、可测量的原因上。今天小众，但随着 AI 辅助开发走向主流，每个开发者都会有数小时的 AI 会话。
+
+---
+
+## 八、Let's Make This Happen / 一起推动这件事
 
 For tool teams, this is a **trivially cheap optimization** — compaction events are already in logs, just count and display. But the UX change is fundamental: from black box to a crack of white.
 这个优化对工具团队来说**实现成本极低**——日志中已有压缩事件，只需计数并展示。但对用户体验的改变是根本性的：从黑盒到有一点白盒。
