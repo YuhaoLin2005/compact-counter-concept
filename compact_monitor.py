@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """
-DeepSeek-TUI 压缩次数监控器
+DeepSeek-TUI 压缩次数监控器 (ARCHIVED)
 用法: python3 compact_monitor.py
+
+⚠️ 此文件为早期概念原型，已归档。生产实现见 compact-counter.py。
+   compact-counter.py 直接使用 Claude Code hooks（PreCompact/PostCompact/SessionStart），
+   不依赖日志文件正则解析。建议使用生产版本。
 """
 
 import time
