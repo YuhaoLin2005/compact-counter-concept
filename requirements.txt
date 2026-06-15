@@ -1,0 +1,7 @@
+# Compact Counter — Runtime Dependencies
+# Install: pip install -r requirements.txt
+
+# No mandatory runtime dependencies — monitor.py uses only Python stdlib.
+# Optional dependencies for extra features:
+# plyer>=2.0.0          # Desktop notifications (--notify flag)
+# pyyaml>=6.0           # YAML config file support (planned)
