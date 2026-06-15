@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0d1117;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+    gap: 16px;
+    padding: 20px;
+  }
+  .terminal {
+    width: 320px;
+    background: #1a1a2e;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  }
+  .terminal.healthy  { border-top: 3px solid #22c55e; }
+  .terminal.warning  { border-top: 3px solid #eab308; }
+  .terminal.critical { border-top: 3px solid #ef4444; }
+  .titlebar {
+    background: #16213e;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.r { background: #ef4444; }
+  .dot.y { background: #eab308; }
+  .dot.g { background: #22c55e; }
+  .title {
+    margin-left: 8px;
+    color: #8b949e;
+    font-size: 12px;
+  }
+  .body {
+    padding: 14px 16px;
+    font-size: 13px;
+    line-height: 1.8;
+    color: #c9d1d9;
+  }
+  .state-label {
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 8px;
+  }
+  .healthy  .state-label { color: #22c55e; }
+  .warning  .state-label { color: #eab308; }
+  .critical .state-label { color: #ef4444; }
+  .divider {
+    color: #30363d;
+    margin: 6px 0;
+  }
+  .metric { color: #8b949e; }
+  .metric .val { color: #c9d1d9; }
+  .highlight { color: #eab308; }
+  .danger { color: #ef4444; }
+  .ok { color: #22c55e; }
+  .advice-box {
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .healthy  .advice-box { background: rgba(34,197,94,0.1);  border-left: 2px solid #22c55e; }
+  .warning  .advice-box { background: rgba(234,179,8,0.1);   border-left: 2px solid #eab308; }
+  .critical .advice-box { background: rgba(239,68,68,0.1);   border-left: 2px solid #ef4444; }
+  .healthy  .advice-box .icon { color: #22c55e; }
+  .warning  .advice-box .icon { color: #eab308; }
+  .critical .advice-box .icon { color: #ef4444; }
+
+  /* Labels row above terminals */
+  .wrapper { display: flex; flex-direction: column; align-items: center; }
+  .banner {
+    color: #c9d1d9;
+    font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+    font-size: 15px;
+    margin-bottom: 16px;
+    text-align: center;
+    opacity: 0.8;
+  }
+</style>
+</head>
+<body>
+<div style="display:flex; flex-direction:column; align-items:center;">
+  <div class="banner">Compaction Count — Three States, One Status Bar</div>
+  <div style="display:flex; gap:16px;">
+
+    <!-- HEALTHY -->
+    <div class="terminal healthy">
+      <div class="titlebar">
+        <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+        <span class="title">session — zsh</span>
+      </div>
+      <div class="body">
+        <div class="state-label">🟢 HEALTHY</div>
+        <div class="divider">────────────────────────</div>
+        <div><span class="metric">🤖 Model   </span><span class="val">Opus 4.6</span></div>
+        <div><span class="metric">🔄 Compact </span><span class="ok">0 times</span></div>
+        <div><span class="metric">📊 Context </span><span class="val">23% used</span></div>
+        <div><span class="metric">💰 Cost    </span><span class="val">$0.05</span></div>
+        <div class="divider">────────────────────────</div>
+        <div class="advice-box">
+          <span class="icon">✅</span> Full memory intact.<br>
+          Model has complete grasp<br>
+          of all context.<br>
+          <span class="ok">No action needed.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- WARNING -->
+    <div class="terminal warning">
+      <div class="titlebar">
+        <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+        <span class="title">session — zsh</span>
+      </div>
+      <div class="body">
+        <div class="state-label">🟡 WARNING</div>
+        <div class="divider">────────────────────────</div>
+        <div><span class="metric">🤖 Model   </span><span class="val">Opus 4.6</span></div>
+        <div><span class="metric">🔄 Compact </span><span class="highlight">2 times</span></div>
+        <div><span class="metric">📊 Context </span><span class="val">68% used</span></div>
+        <div><span class="metric">💰 Cost    </span><span class="val">$0.18</span></div>
+        <div class="divider">────────────────────────</div>
+        <div class="advice-box">
+          <span class="icon">⚠️</span> Partial context lost.<br>
+          Watch reply quality.<br>
+          OK to continue, but<br>
+          avoid complex new tasks.
+        </div>
+      </div>
+    </div>
+
+    <!-- CRITICAL -->
+    <div class="terminal critical">
+      <div class="titlebar">
+        <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+        <span class="title">session — zsh</span>
+      </div>
+      <div class="body">
+        <div class="state-label">🔴 CRITICAL</div>
+        <div class="divider">────────────────────────</div>
+        <div><span class="metric">🤖 Model   </span><span class="val">Opus 4.6</span></div>
+        <div><span class="metric">🔄 Compact </span><span class="danger">4 times</span></div>
+        <div><span class="metric">📊 Context </span><span class="val">91% used</span></div>
+        <div><span class="metric">💰 Cost    </span><span class="val">$0.31</span></div>
+        <div class="divider">────────────────────────</div>
+        <div class="advice-box">
+          <span class="icon">💀</span> High hallucination risk.<br>
+          <span class="danger">Reset immediately!</span><br>
+          Run /reset or /rewind<br>
+          to an earlier node.
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>
