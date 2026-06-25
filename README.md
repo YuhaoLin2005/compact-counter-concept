@@ -1,6 +1,6 @@
 # compact-counter
 
-Claude Code 上下文压缩次数监控。不是线性退化——压缩对AI表现的影响是非线性的，且**不同模型之间存在差异**。
+Claude Code 上下文压缩次数监控。不是简单的"越少越好"——压缩对AI表现的影响是非线性的，且**不同模型之间存在差异**。
 
 ## 核心发现
 
@@ -27,6 +27,7 @@ Claude Code 上下文压缩次数监控。不是线性退化——压缩对AI表
 ```bash
 cp compact-counter.py ~/.claude/scripts/
 # settings.json 配置 PreCompact/PostCompact/SessionStart 三个 hook
+# 完整配置见 deepseek-claude-code-starter
 ```
 
 ## 原理
@@ -39,6 +40,11 @@ cp compact-counter.py ~/.claude/scripts/
 - 多会话累加（不自动重置）
 - 仅测试过 Windows
 - 不自动刷新，需手动运行
+
+## 相关项目
+
+- [deepseek-claude-code-starter](https://github.com/YuhaoLin2005/deepseek-claude-code-starter) — 本工具所属的 Claude Code 脚手架
+- [claude-code-engineering-system](https://github.com/YuhaoLin2005/claude-code-engineering-system) — 脚手架背后的方法论框架：对抗性审计/双轨记忆/三层安全
 
 ## License
 
