@@ -1,100 +1,107 @@
-# EXPERIMENT: Multi-Round Compression Degradation Curve
+# EXPERIMENT: Does Context Compaction Follow the Compression-Ratio Curve?
 
-## Hypothesis
+## Background
 
-LLM context compression follows a **peak-then-monotonic-decline** pattern, not simple linear degradation:
+Academic research has firmly established that parameter compression (pruning, quantization) follows a peak-then-decline performance curve. The Lottery Ticket Hypothesis (ICLR 2019) proved the existence of sparse subnetworks that match or exceed full model performance. Compression scaling laws (2025) quantified the linear relationship between compression ratio and downstream task degradation.
+
+**What's NOT studied:** Does **context summarization** (Claude Code compaction, agent session memory) follow the same pattern?
+
+## Key Distinction
+
+| | Parameter Compression | Context Compaction |
+|---|---|---|
+| What changes | Model weights | Conversation history |
+| Mechanism | Pruning, quantization | LLM summarization |
+| Metric | Sparsity %, bit-width | Compaction ratio |
+| Peak observed | Yes (Lottery Ticket) | Unknown |
+| Prior work | Extensive | None |
+
+## Hypothesis (Revised)
+
+Context compaction follows the same compression-ratio curve as parameter compression:
 
 ```
-  Quality
-    │  ┌──────┐
-    │  │ pre  │  Smart but noisy
-    │  └──┬───┘
-    │     │  1st compress
-    │  ┌──┴───┐
-    │  │ dip  │  Brief stupidity (nuance lost)
-    │  └──┬───┘
-    │     │  2nd compress
-    │  ┌──┴───┐
-    │  │ peak │  "回光返照" — brief resurgence
-    │  └──┬───┘
-    │     │  3rd compress
-    │     └──────►  Monotonic decline, irreversible
-    │
-    └─────────────────────────────────► Compressions
+Performance
+   │    ╭──╮         
+   │   ╱    ╲        Mild compaction: remove noise → BETTER
+   │  ╱      ╲       
+   │ ╱        ╲      Peak: optimal information density
+   │╱          ╲     
+   │            ╲    Heavy compaction: lose critical context
+   │            ╲    
+   └──────────────────────► Compaction ratio
 ```
 
-**Key claim:** Compression is not a sustainable solution for long sessions. It provides a brief resurgence (compression 2) but after that peak, the model enters irreversible monotonic decline.
-
-## Prior Work
-
-| Paper | Finding | Gap |
-|-------|---------|-----|
-| RCC (ICLR 2025) | Compression degrades performance; propose instruction reconstruction | Single compression only |
-| ACON (ICLR 2026) | Agent context growth degrades reasoning; optimize compression guidelines | Single-task optimization |
-| Morph (2026) | GPT-5.4 drops from 97.2% at 32K to 36.6% at 1M tokens | Tests context length, not compression rounds |
-
-**What's missing:** No prior work studies the multi-round compression curve. All existing research treats compression as a one-time event, not a recurring session phenomenon.
+The variable is **compaction ratio** (how much of the context is summarized away), not compaction count.
 
 ## Proposed Methodology
 
 ### Setup
 
-1. Select a model with known context window (e.g., DeepSeek V4 1M, Claude Opus 200K)
-2. Prepare 10 benchmark tasks across 4 categories:
-   - Code understanding (read file → explain logic)
-   - Reasoning (multi-step problem solving)
-   - Creative (generate content with constraints)
-   - Translation (complex document translation)
-3. Score each task on a 0-5 rubric for correctness, completeness, and coherence
+1. Monitor compaction events via compact-counter hooks
+2. After each compaction, measure the *compaction ratio* (tokens before / tokens after)
+3. Run benchmark tasks and score
+4. Plot performance vs. compaction ratio (not vs. count)
+
+### Benchmark Tasks (10 tasks, 4 categories)
+
+**Code Understanding:**
+1. Read a complex function → explain its logic and edge cases
+2. Given a bug report → locate the root cause in multi-file codebase
+
+**Reasoning:**
+3. Multi-step planning problem (travel logistics with constraints)
+4. Debug a logic error in a code snippet
+
+**Factual Recall:**
+5. Answer questions about content presented early in the session
+6. Retrieve specific details from a long document discussed 10+ turns ago
+
+**Creative:**
+7. Generate code following complex, multi-constraint specification
+8. Translate a technical document with domain-specific terminology
+
+**Tool Use:**
+9. Navigate a file tree to find specific information
+10. Execute a multi-step data analysis task
+
+### Scoring (0-5 rubric)
+
+| Score | Criteria |
+|-------|----------|
+| 5 | Perfect — all constraints met, no errors |
+| 4 | Minor issues only (stylistic, non-functional) |
+| 3 | Functional but incomplete or with minor errors |
+| 2 | Significant errors affecting correctness |
+| 1 | Mostly wrong or incomplete |
+| 0 | Nonsensical or completely failed |
 
 ### Procedure
 
 ```
-1. Run all 10 tasks with CLEAN context (compression 0) → score
-2. Fill context to ~70% window → trigger compression
-3. Run all 10 tasks after compression → score
-4. Repeat until 8+ compressions or output quality drops below 2/5
-5. Plot mean score vs compression rounds
-6. Repeat with different models for cross-model comparison
+1. Session start → compression 0, ratio 0
+2. Fill context to ~70% window
+3. Trigger compaction (auto or manual)
+4. Record compact ratio (tokens_before / tokens_after)
+5. Run all 10 benchmark tasks → score each
+6. Repeat until 5+ compactions or score drops below 2/5
+7. Plot mean score vs. compaction ratio (NOT count)
 ```
-
-### Metrics
-
-- **Mean task score** (0-5) per compression round
-- **Score variance** — does the model become inconsistent?
-- **Token efficiency** — tokens consumed per point of score
-- **Hallucination rate** — fabricated facts per response
 
 ### Variables to Control
 
-- Model (DeepSeek V4, Claude Opus, GPT-5, Gemini)
-- Context window size
-- Task type distribution
-- Compression trigger threshold (50% vs 70% vs 90% window)
-- Session length (short vs long)
+- Model (Claude Opus, GPT-5, Gemini)
+- Session type (coding, analysis, creative)
+- Compaction trigger (% window)
+- Task difficulty baseline
 
-## Reproduce
+## References
 
-1. Clone this repo
-2. Install the hook per quick-start in README
-3. Run a long session, tracking compressions
-4. After each compression, run the benchmark tasks
-5. Record scores in `data/scores.csv`
-6. Run `python analyze.py` to generate the curve
-
-```bash
-# Quick start with DeepSeek V4
-cp compact-counter.py ~/.claude/scripts/
-# Configure hooks → start long session → run benchmarks
-python analyze.py data/scores.csv --output curve.png
-```
-
-## Related Literature
-
-- Huang et al., "Recurrent Context Compression" (ICLR 2025) — [arXiv:2406.06110](https://arxiv.org/abs/2406.06110)
-- Kang et al., "ACON: Optimizing Context Compression for Long-horizon LLM Agents" (ICLR 2026) — [arXiv:2510.00615](https://arxiv.org/abs/2510.00615)
-- Liu et al., "Lost in the Middle: How Language Models Use Long Contexts" (TACL 2024) — [arXiv:2307.03172](https://arxiv.org/abs/2307.03172)
+1. Frankle & Carbin, "The Lottery Ticket Hypothesis" (ICLR 2019)
+2. "When Reasoning Meets Compression" (2025)
+3. "Compression Laws for Large Language Models" (2025)
+4. Iterative vs one-shot pruning comparison (arXiv:2508.13836, 2025)
 
 ## License
 
-MIT — methodology is open. Data is yours.
+MIT — methodology is open. Run your own experiments.
