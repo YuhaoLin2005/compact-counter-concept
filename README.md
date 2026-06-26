@@ -1,50 +1,68 @@
 # compact-counter
 
-Claude Code 上下文压缩次数监控。不是简单的"越少越好"——压缩对AI表现的影响是非线性的，且**不同模型之间存在差异**。
+Claude Code context compression monitor. Tracks compaction events and reveals the **multi-round compression degradation curve** — a pattern not yet studied in academic literature.
 
-## 核心发现
+## Core Hypothesis
 
-基于 DeepSeek V4 (1M context) 70+ 次会话的实际体验：
+LLM context compression follows a **peak-then-monotonic-decline** pattern, not simple linear degradation:
 
-| 压缩次数 | 状态 | 表现（DeepSeek V4 实测） |
-|---------|------|------------------------|
-| 0 | 记忆完整 | 上下文完整，但噪声多，响应偏慢 |
-| 1-2 | 最佳区间 | 上下文被提炼，去除冗余，**变聪明** |
-| 3-4 | 临界 | 开始丢失边缘信息，复杂任务需验证 |
-| 5+ | 过压 | 上下文严重失真，**明显变笨**，新开会话 |
+```
+Quality
+   │    ╭──╮         Compression 0: Smart but noisy
+   │   ╱    ╲        
+   │  ╱      ╲       Compression 1: Brief dip (nuance lost)
+   │ ╱        ╲      
+   │╱          ╲     Compression 2: "回光返照" — brief resurgence
+   │            ╲    
+   │            ╲    Compression 3+: Monotonic decline, irreversible
+   │             ╲
+   └──────────────────────► Compressions
+```
 
-**关键前提**：
-- 上述阈值基于 DeepSeek V4 1M 上下文窗口的实测
-- 不同模型（Claude/ GPT/ Gemini）因上下文窗口大小、压缩算法、记忆机制不同，阈值**会有差异**
-- 本工具的价值不是提供"通用标准"，而是**帮你找到你自己所用模型的最佳区间**
+**Key claim:** Compression is a painkiller, not a cure. After the peak at compression 2, the model enters irreversible decline. This has NOT been studied — existing research (RCC, ACON) treats compression as a one-time event.
 
-## 效果
+Full hypothesis, methodology, and benchmark framework in [EXPERIMENT.md](EXPERIMENT.md).
 
-![状态栏截图](assets/terminal-three-states.png)
+## Model-Specific Thresholds
 
-## 快速使用
+Based on DeepSeek V4 (1M context) observation:
+
+| Compressions | State | Behavior |
+|-------------|-------|----------|
+| 0 | Memory intact | Complete context, slower responses |
+| 1 | Dip | First compression removes nuance |
+| 2 | **Sweet spot** | Brief resurgence — context refined, responsive |
+| 3-4 | Warning | Edge information lost, verify complex tasks |
+| 5+ | Degraded | Context severely distorted, prefer new session |
+
+Thresholds vary by model (Claude/GPT/Gemini differ in window size, compression algorithm, memory mechanics). This tool helps you **find your model's pattern**, not enforce a universal standard.
+
+## Quick Start
 
 ```bash
 cp compact-counter.py ~/.claude/scripts/
-# settings.json 配置 PreCompact/PostCompact/SessionStart 三个 hook
-# 完整配置见 deepseek-claude-code-starter
+# Configure PreCompact/PostCompact/SessionStart hooks
+# See deepseek-claude-code-starter for full config
 ```
 
-## 原理
+## Limitations
 
-统计 Claude Code hook 事件中的 compact 次数，持久化到 `~/.claude/compact-state.json`，状态栏实时显示。
+- Thresholds based on single-model observation (DeepSeek V4)
+- Multi-session cumulative (doesn't auto-reset)
+- Windows-only tested
+- No auto-refresh — run manually to check
 
-## 已知局限
+## See Also
 
-- 阈值基于单一模型（DeepSeek V4），不同模型需实测校准
-- 多会话累加（不自动重置）
-- 仅测试过 Windows
-- 不自动刷新，需手动运行
+- [EXPERIMENT.md](EXPERIMENT.md) — Full hypothesis, methodology, citations
+- [deepseek-claude-code-starter](https://github.com/YuhaoLin2005/deepseek-claude-code-starter) — Parent scaffolding project
+- [open-source-flywheel](https://github.com/YuhaoLin2005/open-source-flywheel) — Methodology used to develop this research
 
-## 相关项目
+## Prior Art / Citations
 
-- [deepseek-claude-code-starter](https://github.com/YuhaoLin2005/deepseek-claude-code-starter) — 本工具所属的 Claude Code 脚手架
-- [claude-code-engineering-system](https://github.com/YuhaoLin2005/claude-code-engineering-system) — 脚手架背后的方法论框架：对抗性审计/双轨记忆/三层安全
+- Huang et al., "Recurrent Context Compression" (ICLR 2025) — [arXiv:2406.06110](https://arxiv.org/abs/2406.06110)
+- Kang et al., "ACON: Context Compression for Long-horizon Agents" (ICLR 2026) — [arXiv:2510.00615](https://arxiv.org/abs/2510.00615)
+- Liu et al., "Lost in the Middle" (TACL 2024) — [arXiv:2307.03172](https://arxiv.org/abs/2307.03172)
 
 ## License
 
